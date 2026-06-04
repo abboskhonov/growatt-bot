@@ -3,6 +3,9 @@ import { UserDB } from '../db'
 import {
   getPlantList,
   getDeviceList,
+  getTodayDate,
+  getTodayHourlyData,
+  buildTodayChartUrl,
   getWeekData,
   getMonthData,
   formatTodayResult,
@@ -111,6 +114,8 @@ export function registerCommands(bot: Bot, db: UserDB) {
       }
 
       const deviceMap: Record<string, unknown> = {}
+      const today = getTodayDate()
+
       for (const plant of plantList.back.data) {
         try {
           deviceMap[plant.plantId] = await getDeviceList(plant.plantId, user.cookies)
@@ -119,6 +124,26 @@ export function registerCommands(bot: Bot, db: UserDB) {
         }
       }
 
+      // Send chart for first plant
+      if (plantList.back.data.length > 0) {
+        const firstPlant = plantList.back.data[0]
+        try {
+          const hourlyData = await getTodayHourlyData(firstPlant.plantId, user.cookies, today)
+          if (hourlyData.entries.length > 0) {
+            const chartUrl = buildTodayChartUrl(hourlyData.entries)
+            if (chartUrl) {
+              await ctx.replyWithPhoto(chartUrl, {
+                caption: `📊 <b>${hourlyData.plantName || firstPlant.plantName}</b> — soatlik ishlab chiqarish`,
+                parse_mode: 'HTML',
+              })
+            }
+          }
+        } catch (err) {
+          console.error('Chart generation error:', err)
+        }
+      }
+
+      // Send text summary
       const reply = formatTodayResult(plantList, deviceMap)
       await ctx.reply(reply, {
         parse_mode: 'HTML',

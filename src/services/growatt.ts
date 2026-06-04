@@ -120,7 +120,7 @@ function getCurrentYear(): string {
   return String(new Date().getFullYear())
 }
 
-function getTodayDate(): string {
+export function getTodayDate(): string {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
@@ -199,6 +199,91 @@ export async function getYearData(plantId: string, cookies: string): Promise<{ p
 }
 
 // --- Formatters ---
+
+export async function getTodayHourlyData(plantId: string, cookies: string, date: string) {
+  const result = await getPlantEnergyData(plantId, 1, date, cookies)
+  const rawData = result?.back?.data
+
+  const entries = Object.entries(rawData || {})
+    .map(([time, value]) => ({
+      time: time.includes(':') ? time.slice(0, 5) : time.padStart(5, '0'),
+      value: parseFloat(value as string) || 0,
+    }))
+    .sort((a, b) => a.time.localeCompare(b.time))
+
+  return { entries, plantName: result?.back?.plantData?.plantName || '' }
+}
+
+export function buildTodayChartUrl(entries: { time: string; value: number }[]): string | null {
+  if (entries.length === 0) return null
+
+  const labels = entries.map((e) => e.time)
+  const data = entries.map((e) => e.value)
+  const maxVal = Math.max(...data, 0.1)
+
+  const backgroundColor = data.map((v) => {
+    const intensity = Math.min(1, 0.3 + (v / maxVal) * 0.7)
+    const r = Math.round(255)
+    const g = Math.round(160 + 95 * intensity)
+    const b = Math.round(30)
+    return `rgba(${r}, ${g}, ${b}, 0.85)`
+  })
+
+  const chartConfig = {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'kWh',
+          data,
+          backgroundColor,
+          borderColor: '#d97706',
+          borderWidth: 0,
+          borderRadius: 3,
+          barPercentage: 0.85,
+        },
+      ],
+    },
+    options: {
+      responsive: false,
+      plugins: {
+        title: {
+          display: true,
+          text: '☀️ Bugun - Quyosh Energiyasi',
+          color: '#1a1a2e',
+          font: { size: 16, weight: 'bold' },
+        },
+        legend: { display: false },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'kWh',
+            color: '#666',
+            font: { size: 11 },
+          },
+          grid: { color: '#f5f5f5' },
+          ticks: { color: '#888', font: { size: 10 } },
+        },
+        x: {
+          grid: { display: false },
+          ticks: {
+            color: '#888',
+            font: { size: 9 },
+            maxTicksLimit: 8,
+          },
+        },
+      },
+    },
+  }
+
+  const encoded = encodeURIComponent(JSON.stringify(chartConfig))
+  if (encoded.length > 4000) return null
+  return `https://quickchart.io/chart?w=700&h=400&c=${encoded}`
+}
 
 export function formatLoginResult(data: LoginResult['data']): string {
   const { user, data: plants, deviceCount } = data.back

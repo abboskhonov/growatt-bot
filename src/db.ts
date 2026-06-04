@@ -26,7 +26,7 @@ function getLocalDb(): any {
 
 export class UserDB {
   private d1?: D1Database
-  private local?: Database
+  private local?: any
   private isLocal: boolean
 
   constructor(db?: D1Database) {

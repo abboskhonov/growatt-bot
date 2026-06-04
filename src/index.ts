@@ -13,13 +13,19 @@ const app = new Hono<{ Bindings: Env }>()
 
 // Health check
 app.get('/', (c) => {
-  return c.json({ status: 'ok', bot: 'growatt-bot' })
+  return c.json({ status: 'ok', bot: 'growatt-bot', hasToken: !!c.env.BOT_TOKEN, tokenLen: c.env.BOT_TOKEN?.length })
 })
 
 // Webhook
 app.post('/webhook', async (c) => {
-  const { bot } = createApp(c.env.BOT_TOKEN, c.env.DB)
-  return webhookCallback(bot, 'hono')(c)
+  try {
+    const { bot } = createApp(c.env.BOT_TOKEN, c.env.DB)
+    return webhookCallback(bot, 'hono')(c)
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err)
+    console.error('Webhook error:', error)
+    return c.json({ error: error }, 500)
+  }
 })
 
 // Setup webhook

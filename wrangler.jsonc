@@ -9,9 +9,8 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
-  // "vars": {
-  //   "MY_VAR": "my-variable"
-  // },
+  "vars": {
+  },
   // "kv_namespaces": [
   //   {
   //     "binding": "MY_KV_NAMESPACE",
@@ -31,7 +30,7 @@
     {
       "binding": "DB",
       "database_name": "growatt-bot",
-      "database_id": ""
+      "database_id": "ec292436-9785-445e-9019-80a23beb0199"
     }
   ],
   // "ai": {

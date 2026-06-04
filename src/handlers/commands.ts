@@ -12,6 +12,7 @@ import {
   formatWeekResult,
   formatMonthResult,
 } from '../services/growatt'
+import { InputFile } from 'grammy'
 import type { Bot } from 'grammy'
 
 export function registerCommands(bot: Bot, db: UserDB) {
@@ -124,27 +125,49 @@ export function registerCommands(bot: Bot, db: UserDB) {
         }
       }
 
-      // Send chart for first plant
+      // Build text summary
+      const reply = formatTodayResult(plantList, deviceMap)
+
+      // Send chart + summary merged as one message
       if (plantList.back.data.length > 0) {
         const firstPlant = plantList.back.data[0]
+        console.log('[today] Generating chart for plant:', firstPlant.plantId, 'date:', today)
         try {
           const hourlyData = await getTodayHourlyData(firstPlant.plantId, user.cookies, today)
+          console.log('[today] Hourly data entries:', hourlyData.entries.length, 'plantName:', hourlyData.plantName)
           if (hourlyData.entries.length > 0) {
-            const chartUrl = buildTodayChartUrl(hourlyData.entries)
+            const chartUrl = buildTodayChartUrl(hourlyData.entries, today)
+            console.log('[today] Chart URL length:', chartUrl?.length || 0)
             if (chartUrl) {
-              await ctx.replyWithPhoto(chartUrl, {
-                caption: `📊 <b>${hourlyData.plantName || firstPlant.plantName}</b> — soatlik ishlab chiqarish`,
+              console.log('[today] Fetching chart image...')
+              const imgResp = await fetch(chartUrl)
+              if (!imgResp.ok) {
+                console.error('[today] Chart fetch failed:', imgResp.status)
+                throw new Error(`Chart fetch failed: ${imgResp.status}`)
+              }
+              const imgBlob = await imgResp.blob()
+              console.log('[today] Chart image size:', imgBlob.size)
+              
+              const arrayBuffer = await imgBlob.arrayBuffer()
+              const inputFile = new InputFile(new Uint8Array(arrayBuffer), 'chart.png')
+              
+              console.log('[today] Sending photo with merged caption...')
+              await ctx.api.sendPhoto(ctx.chat.id, inputFile, {
+                caption: reply,
                 parse_mode: 'HTML',
+                reply_markup: loggedInKeyboard(),
               })
+              console.log('[today] Photo sent successfully')
+              return  // ✅ merged — don't send separate text
             }
           }
         } catch (err) {
-          console.error('Chart generation error:', err)
+          const error = err instanceof Error ? err.message : String(err)
+          console.error('[today] Chart generation error:', error)
         }
       }
 
-      // Send text summary
-      const reply = formatTodayResult(plantList, deviceMap)
+      // Fallback: send text only if chart failed
       await ctx.reply(reply, {
         parse_mode: 'HTML',
         reply_markup: loggedInKeyboard(),

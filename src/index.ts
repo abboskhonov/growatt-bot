@@ -13,7 +13,7 @@ const app = new Hono<{ Bindings: Env }>()
 
 // Health check
 app.get('/', (c) => {
-  return c.json({ status: 'ok', bot: 'growatt-bot', hasToken: !!c.env.BOT_TOKEN, tokenLen: c.env.BOT_TOKEN?.length })
+  return c.json({ status: 'ok', bot: 'growatt-bot' })
 })
 
 // Webhook

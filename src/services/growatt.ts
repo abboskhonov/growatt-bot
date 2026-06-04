@@ -125,6 +125,13 @@ export function getTodayDate(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
+const MONTHS_UZ = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr']
+
+export function formatUzbekDate(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return `${day} ${MONTHS_UZ[month - 1]}, ${year}`
+}
+
 function parseEnergyData(data: Record<string, string>): number[] {
   return Object.values(data).map((v) => parseFloat(v) || 0)
 }
@@ -214,19 +221,19 @@ export async function getTodayHourlyData(plantId: string, cookies: string, date:
   return { entries, plantName: result?.back?.plantData?.plantName || '' }
 }
 
-export function buildTodayChartUrl(entries: { time: string; value: number }[]): string | null {
+export function buildTodayChartUrl(entries: { time: string; value: number }[], dateStr: string): string | null {
   if (entries.length === 0) return null
 
   const labels = entries.map((e) => e.time)
   const data = entries.map((e) => e.value)
   const maxVal = Math.max(...data, 0.1)
 
-  const backgroundColor = data.map((v) => {
-    const intensity = Math.min(1, 0.3 + (v / maxVal) * 0.7)
+  const bg = data.map((v) => {
+    const i = Math.min(1, 0.3 + (v / maxVal) * 0.7)
     const r = Math.round(255)
-    const g = Math.round(160 + 95 * intensity)
+    const g = Math.round(160 + 95 * i)
     const b = Math.round(30)
-    return `rgba(${r}, ${g}, ${b}, 0.85)`
+    return `rgba(${r},${g},${b},0.85)`
   })
 
   const chartConfig = {
@@ -235,22 +242,18 @@ export function buildTodayChartUrl(entries: { time: string; value: number }[]): 
       labels,
       datasets: [
         {
-          label: 'kWh',
           data,
-          backgroundColor,
-          borderColor: '#d97706',
-          borderWidth: 0,
+          backgroundColor: bg,
           borderRadius: 3,
           barPercentage: 0.85,
         },
       ],
     },
     options: {
-      responsive: false,
       plugins: {
         title: {
           display: true,
-          text: '☀️ Bugun - Quyosh Energiyasi',
+          text: `☀️ ${formatUzbekDate(dateStr)}`,
           color: '#1a1a2e',
           font: { size: 16, weight: 'bold' },
         },
@@ -261,7 +264,7 @@ export function buildTodayChartUrl(entries: { time: string; value: number }[]): 
           beginAtZero: true,
           title: {
             display: true,
-            text: 'kWh',
+            text: 'W (Quvvat)',
             color: '#666',
             font: { size: 11 },
           },
@@ -281,7 +284,7 @@ export function buildTodayChartUrl(entries: { time: string; value: number }[]): 
   }
 
   const encoded = encodeURIComponent(JSON.stringify(chartConfig))
-  if (encoded.length > 4000) return null
+  if (encoded.length > 8000) return null
   return `https://quickchart.io/chart?w=700&h=400&c=${encoded}`
 }
 

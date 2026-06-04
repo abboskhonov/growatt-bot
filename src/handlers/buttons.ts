@@ -3,12 +3,16 @@ import { UserDB } from '../db'
 import {
   getPlantList,
   getDeviceList,
+  getTodayDate,
+  getTodayHourlyData,
+  buildTodayChartUrl,
   getWeekData,
   getMonthData,
   formatTodayResult,
   formatWeekResult,
   formatMonthResult,
 } from '../services/growatt'
+import { InputFile } from 'grammy'
 import type { Bot } from 'grammy'
 
 export function registerButtons(bot: Bot, db: UserDB) {
@@ -38,6 +42,8 @@ export function registerButtons(bot: Bot, db: UserDB) {
       }
 
       const deviceMap: Record<string, unknown> = {}
+      const today = getTodayDate()
+
       for (const plant of plantList.back.data) {
         try {
           deviceMap[plant.plantId] = await getDeviceList(plant.plantId, user.cookies)
@@ -47,6 +53,35 @@ export function registerButtons(bot: Bot, db: UserDB) {
       }
 
       const reply = formatTodayResult(plantList, deviceMap)
+
+      // Send chart + summary merged
+      if (plantList.back.data.length > 0) {
+        const firstPlant = plantList.back.data[0]
+        try {
+          const hourlyData = await getTodayHourlyData(firstPlant.plantId, user.cookies, today)
+          if (hourlyData.entries.length > 0) {
+            const chartUrl = buildTodayChartUrl(hourlyData.entries, today)
+            if (chartUrl) {
+              const imgResp = await fetch(chartUrl)
+              if (imgResp.ok) {
+                const imgBlob = await imgResp.blob()
+                const arrayBuffer = await imgBlob.arrayBuffer()
+                const inputFile = new InputFile(new Uint8Array(arrayBuffer), 'chart.png')
+                await ctx.api.sendPhoto(ctx.chat.id, inputFile, {
+                  caption: reply,
+                  parse_mode: 'HTML',
+                  reply_markup: loggedInKeyboard(),
+                })
+                return
+              }
+            }
+          }
+        } catch (err) {
+          console.error('[button today] Chart error:', err)
+        }
+      }
+
+      // Fallback: text only
       await ctx.reply(reply, {
         parse_mode: 'HTML',
         reply_markup: loggedInKeyboard(),

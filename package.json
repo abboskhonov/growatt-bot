@@ -1,0 +1,21 @@
+{
+  "name": "growatt-bot",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/polling.ts",
+    "deploy": "wrangler deploy --minify",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "secret": "wrangler secret put BOT_TOKEN",
+    "webhook": "wrangler dev"
+  },
+  "dependencies": {
+    "grammy": "^1.43.0",
+    "hono": "^4.12.23"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "dotenv": "^17.4.2",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.4.0"
+  }
+}

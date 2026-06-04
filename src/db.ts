@@ -1,12 +1,12 @@
-import { Database } from 'bun:sqlite'
 import type { D1Database, UserRecord } from './types'
 
 // --- Local SQLite (Bun) ---
 
-let localDb: Database | null = null
+let localDb: any = null
 
-function getLocalDb(): Database {
+function getLocalDb(): any {
   if (!localDb) {
+    const { Database } = (globalThis as any).Bun ? require('bun:sqlite') : { Database: class {} }
     localDb = new Database('growatt.db', { create: true })
     localDb.exec(`
       CREATE TABLE IF NOT EXISTS users (

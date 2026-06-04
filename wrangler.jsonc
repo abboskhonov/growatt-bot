@@ -2,10 +2,13 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "growatt-bot",
   "main": "src/index.ts",
-  "compatibility_date": "2026-06-04"
-  // "compatibility_flags": [
-  //   "nodejs_compat"
-  // ],
+  "compatibility_date": "2026-06-04",
+  "alias": {
+    "bun:sqlite": "./src/stubs/bun-sqlite.ts"
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   // "vars": {
   //   "MY_VAR": "my-variable"
   // },

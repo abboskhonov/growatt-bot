@@ -116,6 +116,7 @@ export function registerCommands(bot: Bot, db: UserDB) {
 
       const deviceMap: Record<string, unknown> = {}
       const today = getTodayDate()
+      console.log('[today] today date:', today)
 
       for (const plant of plantList.back.data) {
         try {

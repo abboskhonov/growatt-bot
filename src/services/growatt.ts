@@ -128,8 +128,24 @@ export function getTodayDate(): string {
 const MONTHS_UZ = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr']
 
 export function formatUzbekDate(dateStr: string): string {
-  const [year, month, day] = dateStr.split('-').map(Number)
-  return `${day} ${MONTHS_UZ[month - 1]}, ${year}`
+  console.log('[formatUzbekDate] input:', dateStr, typeof dateStr)
+  if (!dateStr || typeof dateStr !== 'string') {
+    console.log('[formatUzbekDate] invalid input, returning Bugun')
+    return 'Bugun'
+  }
+  const parts = dateStr.split('-').map(Number)
+  if (parts.length !== 3) {
+    console.log('[formatUzbekDate] wrong parts count:', parts.length)
+    return 'Bugun'
+  }
+  const [year, month, day] = parts
+  if (!year || !month || !day || month < 1 || month > 12) {
+    console.log('[formatUzbekDate] invalid values:', { year, month, day })
+    return 'Bugun'
+  }
+  const result = `${day} ${MONTHS_UZ[month - 1]}, ${year}`
+  console.log('[formatUzbekDate] result:', result)
+  return result
 }
 
 function parseEnergyData(data: Record<string, string>): number[] {
@@ -221,8 +237,12 @@ export async function getTodayHourlyData(plantId: string, cookies: string, date:
   return { entries, plantName: result?.back?.plantData?.plantName || '' }
 }
 
-export function buildTodayChartUrl(entries: { time: string; value: number }[], dateStr: string): string | null {
+export function buildTodayChartUrl(entries: { time: string; value: number }[], dateStr?: string): string | null {
   if (entries.length === 0) return null
+
+  console.log('[buildTodayChartUrl] dateStr:', dateStr, typeof dateStr)
+  const titleText = dateStr ? `☀️ ${formatUzbekDate(dateStr)}` : '☀️ Bugun'
+  console.log('[buildTodayChartUrl] title:', titleText)
 
   const labels = entries.map((e) => e.time)
   const data = entries.map((e) => e.value)
@@ -253,7 +273,7 @@ export function buildTodayChartUrl(entries: { time: string; value: number }[], d
       plugins: {
         title: {
           display: true,
-          text: `☀️ ${formatUzbekDate(dateStr)}`,
+          text: titleText,
           color: '#1a1a2e',
           font: { size: 16, weight: 'bold' },
         },
@@ -284,8 +304,10 @@ export function buildTodayChartUrl(entries: { time: string; value: number }[], d
   }
 
   const encoded = encodeURIComponent(JSON.stringify(chartConfig))
+  console.log('[buildTodayChartUrl] encoded length:', encoded.length)
   if (encoded.length > 8000) return null
-  return `https://quickchart.io/chart?w=700&h=400&c=${encoded}`
+  const cacheBuster = Math.random().toString(36).slice(2, 8)
+  return `https://quickchart.io/chart?w=700&h=400&c=${encoded}&_cb=${cacheBuster}`
 }
 
 export function formatLoginResult(data: LoginResult['data']): string {

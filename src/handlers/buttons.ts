@@ -43,6 +43,7 @@ export function registerButtons(bot: Bot, db: UserDB) {
 
       const deviceMap: Record<string, unknown> = {}
       const today = getTodayDate()
+      console.log('[button today] today:', today)
 
       for (const plant of plantList.back.data) {
         try {
@@ -59,8 +60,10 @@ export function registerButtons(bot: Bot, db: UserDB) {
         const firstPlant = plantList.back.data[0]
         try {
           const hourlyData = await getTodayHourlyData(firstPlant.plantId, user.cookies, today)
+          console.log('[button today] hourly entries:', hourlyData.entries.length)
           if (hourlyData.entries.length > 0) {
             const chartUrl = buildTodayChartUrl(hourlyData.entries, today)
+            console.log('[button today] chartUrl:', chartUrl?.slice(0, 100))
             if (chartUrl) {
               const imgResp = await fetch(chartUrl)
               if (imgResp.ok) {
